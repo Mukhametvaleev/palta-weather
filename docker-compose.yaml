@@ -1,0 +1,79 @@
+version: "3.8"
+
+services:
+    palta_weather:
+        container_name: $APP_NAME-weather
+        build:
+            context: .
+            dockerfile: ./compose/local/flask/Dockerfile
+        image: palta_weather
+        command: /start
+        ports:
+            - $PORT:5000
+        volumes:
+            - .:/usr/src/app
+        env_file: .app-env/.development
+        environment:
+            - FLASK_APP=app
+            - APP_NAME=$APP_NAME
+            - COORD=$COORD
+            - SCHEDULE=$SCHEDULE
+        restart: always
+        depends_on:
+            - redis
+            - db
+
+    db:
+        container_name: $APP_NAME-weather_db
+        image: postgres:13.3-alpine
+        volumes:
+            - postgresql_data:/var/lib/postgresql/data/
+        environment:
+            - POSTGRES_DB=palta_weather
+            - POSTGRES_USER=palta_weather
+            - POSTGRES_PASSWORD=palta_weather
+
+    redis:
+        container_name: $APP_NAME-weather_redis
+        image: redis:alpine
+
+    celery_worker:
+        container_name: $APP_NAME-weather_celery_worker
+        build:
+            context: .
+            dockerfile: ./compose/local/flask/Dockerfile
+        image: palta_weather_celery_worker
+        command: /start-celeryworker
+        volumes:
+            - .:/usr/src/app
+        env_file: .app-env/.development
+        environment:
+            - FLASK_APP=celery_app
+            - APP_NAME=$APP_NAME
+            - COORD=$COORD
+            - SCHEDULE=$SCHEDULE
+        depends_on:
+            - redis
+            - db
+
+    celery_beat:
+        container_name: $APP_NAME-weather_celery_beat
+        build:
+            context: .
+            dockerfile: ./compose/local/flask/Dockerfile
+        image: palta_weather_celery_beat
+        command: /start-celerybeat
+        volumes:
+            - .:/usr/src/app
+        env_file: .app-env/.development
+        environment:
+            - FLASK_APP=celery_app
+            - APP_NAME=$APP_NAME
+            - COORD=$COORD
+            - SCHEDULE=$SCHEDULE
+        depends_on:
+            - redis
+            - db
+
+volumes:
+    postgresql_data:

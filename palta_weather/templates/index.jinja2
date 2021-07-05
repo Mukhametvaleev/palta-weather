@@ -1,0 +1,119 @@
+{% set title = city|capitalize + " weather" %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+<canvas id="weatherChart" width="600" height="400"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script
+    type="text/javascript"
+    src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"
+></script>
+
+<script>
+    const DEFAULT_CONFIG_DATA = {
+        labels: [],
+        datasets: [
+            {
+                label: "Temp",
+                backgroundColor: "rgb(0, 255, 0)",
+                borderColor: "rgb(0, 255, 0)",
+                data: [],
+            }, {
+                label: "Feels like",
+                backgroundColor: "rgb(255, 0, 0)",
+                borderColor: "rgb(255, 0, 0)",
+                data: [],
+            }, {
+                label: "Wind speed",
+                backgroundColor: "rgb(0, 0, 255)",
+                borderColor: "rgb(0, 0, 255)",
+                data: [],
+            },
+        ],
+    };
+</script>
+
+<script>
+    const socket = io("/weather");
+    let chartInstance = null;
+
+    const handleWeatherUpdate = (weather) => {
+        const getValues = (key, callback) => weather.map((w) => {
+            if (callback && w[key]) {
+                return callback(w[key]);
+            }
+
+            return w[key];
+        });
+
+        const formatDatetime = (ISODateTimeString) => {
+            const date = new Date(ISODateTimeString);
+            const locale = "en";
+            const options = {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                hour: "numeric",
+                minute: "numeric",
+                second: "numeric",
+            };
+            return date.toLocaleDateString(locale, options);
+        };
+
+        const data = {
+            labels: getValues("datetime", formatDatetime),
+            datasets: [
+                {
+                    label: "Temp",
+                    backgroundColor: "rgb(255, 0, 0)",
+                    borderColor: "rgb(255, 0, 0)",
+                    data: getValues("temp"),
+                }, {
+                    label: "Feels like",
+                    backgroundColor: "rgb(0, 255, 0)",
+                    borderColor: "rgb(0, 255, 0)",
+                    data: getValues("feels_like"),
+                }, {
+                    label: "Wind speed",
+                    backgroundColor: "rgb(0, 0, 255)",
+                    borderColor: "rgb(0, 0, 255)",
+                    data: getValues("wind_speed"),
+                },
+            ],
+        };
+
+        const initChart = (data) => {
+            const ctx = document.querySelector("#weatherChart").getContext("2d");
+
+            const config = {
+                type: "line",
+                data,
+            };
+
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+
+            chartInstance = new Chart(ctx, config);
+        };
+
+        initChart(data);
+    };
+
+    socket.on("weather_update", handleWeatherUpdate);
+
+    const handleConnect = () => {
+        socket.emit("join");
+    };
+
+    socket.on("connect", handleConnect);
+</script>
+</body>
+</html>

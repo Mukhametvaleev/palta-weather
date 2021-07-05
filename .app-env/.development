@@ -1,0 +1,8 @@
+FLASK_ENV=development
+FLASK_CONFIG=development
+SECRET_KEY=dev
+DATABASE_URL=postgresql://palta_weather:palta_weather@db/palta_weather
+CELERY_BROKER_URL=redis://redis:6379/0
+CELERY_RESULT_BACKEND=redis://redis:6379/0
+SOCKETIO_MESSAGE_QUEUE=redis://redis:6379/0
+YANDEX_API_KEY=485bae1d-60d3-4a09-9059-396042778160
